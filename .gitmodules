@@ -2,7 +2,6 @@
 	path = extern/glfw
 	url = https://github.com/glfw/glfw/
 	branch = latest
-
 [submodule "extern/glew"]
 	path = extern/glew
 	url = https://github.com/nigels-com/glew/
