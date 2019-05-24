@@ -1,5 +1,14 @@
 
+
+### FORTH ###
+
+add_subdirectory (forth)
+
 ### GLFW ###
+
+# Don't waste our time
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "BUILD GLFW Examples" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "BUILD GLFW Examples" FORCE)
 
 add_subdirectory (glfw)
 
@@ -30,12 +39,14 @@ set(GLEW_SOURCE
 )
 
 set(GLEW_HEADERS
+	glew/include/GL/glew.h
 )
 
 
-add_library( GLEW_1130 STATIC
+add_library(GLEW_1130 STATIC
 	${GLEW_SOURCE}
 	${GLEW_INCLUDE}
+	${GLEW_HEADERS}
 )
 
 target_link_libraries(GLEW_1130
