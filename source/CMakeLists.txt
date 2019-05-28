@@ -1,6 +1,8 @@
 
 set(demo_srcs
 	main.cpp
+	common/shaders.h
+	common/camera.h
 )
 
 add_executable(
@@ -16,3 +18,5 @@ target_link_libraries(
 	forth_static
 	${ADDITIONAL_LIBRARIES}
 )
+
+file(COPY ${CMAKE_SOURCE_DIR}/assets/ DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/)

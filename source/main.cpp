@@ -7,18 +7,114 @@
 
 // Include GLFW
 #include <GLFW/glfw3.h>
-GLFWwindow* window;
+GLFWwindow *window;
 
 // Include GLM
 #include <glm/glm.hpp>
 using namespace glm;
 
-int main( void )
+// Include Forth
+#include "common/camera.h"
+#include "common/shaders.h"
+#include <forth.h>
+
+// Classes necessary for rendering
+Forth::Model4 tesseract = Forth::Model4();
+Forth::CrossSection projector = Forth::CrossSection();
+
+// settings
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 600;
+
+// camera
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+void drawTesseract(void)
+{
+	Forth::Buffer4 *buff = &tesseract.input;
+	buff->simplex = Forth::SM_Tetrahedron;
+
+	for (float w = -1; w <= 1; w += 2)
+		for (float x = -1; x <= 1; x += 2)
+			for (float y = -1; y <= 1; y += 2)
+				for (float z = -1; z <= 1; z += 2)
+				{
+					Forth::Vector4 v = Forth::Vector4(x, y, z, w);
+					buff->AddVertex(v * 1);
+				}
+
+	buff->SequenceGrid(2, 2, 2, 2);
+}
+
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+	// make sure the viewport matches the new window dimensions; note that width and
+	// height will be significantly larger than specified on retina displays.
+	glViewport(0, 0, width, height);
+}
+
+// glfw: whenever the mouse moves, this callback is called
+// -------------------------------------------------------
+void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+	float Xpos = (float)xpos;
+	float Ypos = (float)ypos;
+
+	if (firstMouse)
+	{
+		lastX = Xpos;
+		lastY = Ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = Xpos - lastX;
+	float yoffset = lastY - Ypos; // reversed since y-coordinates go from bottom to top
+
+	lastX = Xpos;
+	lastY = Ypos;
+
+	camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+	camera.ProcessMouseScroll((float)yoffset);
+}
+
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow *window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.ProcessKeyboard(FORWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.ProcessKeyboard(LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+int main(void)
 {
 	// Initialise GLFW
-	if( !glfwInit() )
+	if (!glfwInit())
 	{
-		fprintf( stderr, "Failed to initialize GLFW\n" );
+		fprintf(stderr, "Failed to initialize GLFW\n");
 		getchar();
 		return -1;
 	}
@@ -27,20 +123,24 @@ int main( void )
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "Tutorial 01", NULL, NULL);
-	if( window == NULL ){
-		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Forth Primitive Demo", NULL, NULL);
+	if (window == NULL)
+	{
+		fprintf(stderr, "Failed to open GLFW window. Requires OpenGL 3.3\n");
 		getchar();
 		glfwTerminate();
 		return -1;
 	}
+
 	glfwMakeContextCurrent(window);
 
 	// Initialize GLEW
-	if (glewInit() != GLEW_OK) {
+	if (glewInit() != GLEW_OK)
+	{
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		getchar();
 		glfwTerminate();
@@ -49,28 +149,90 @@ int main( void )
 
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+
+	// tell GLFW to capture our mouse
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
-	do{
-		// Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
-		glClear( GL_COLOR_BUFFER_BIT );
+	// Enable depth test
+	glEnable(GL_DEPTH_TEST);
+	// Accept fragment if it closer to the camera than the former one
+	glDepthFunc(GL_LEQUAL);
 
-		// Draw nothing, see you in tutorial 2 !
+	glEnable(GL_CULL_FACE);
 
+	// Cull triangles which normal is not towards the camera
+	//glEnable(GL_CULL_FACE);
+
+	GLuint VertexArrayID;
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
+
+	// Create and compile our GLSL program from the shaders
+	Shader sh("assets/vertex.vs", "assets/fragment.fs");
+
+	GLuint vb;
+	glGenBuffers(1, &vb);
+
+	drawTesseract();
+
+	std::vector<Forth::Vector3> sv, sn;
+	do
+	{
+		// per-frame time logic
+		// --------------------
+		float currentFrame = (float)glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		// input
+		// -----
+		processInput(window);
+
+		// Clear the screen.
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// be sure to activate shader when setting uniforms/drawing objects
+		sh.use();
+		sh.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+		sh.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		sh.setVec3("lightPos", glm::vec3(2.f, -2.f, 2.f));
+		sh.setVec3("viewPos", camera.Position);
+
+		// transformations
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 view = camera.GetViewMatrix();
+		glm::mat4 model = glm::mat4(1.0f);
+		sh.setMat4("projection", projection);
+		sh.setMat4("view", view);
+		sh.setMat4("model", model);
+
+		// Render tesseract
+		Forth::Transform4 r = Forth::Transform4::identity();
+		float elapsed = float(glfwGetTime());
+		r.rotation = Forth::Euler(1, elapsed * 75.f) *
+					 Forth::Euler(4, elapsed * 90.f) *
+					 Forth::Euler(5, elapsed * 105.f);
+
+		tesseract.matrix = r;
+		tesseract.Render(projector);
+
+		FORTH_GL_DRAW(tesseract.driver, vb);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
 	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0 );
+	while (glfwWindowShouldClose(window) == 0);
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
 
 	return 0;
 }
-
