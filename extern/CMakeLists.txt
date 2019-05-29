@@ -9,6 +9,7 @@ add_subdirectory (forth)
 # Don't waste our time
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "BUILD GLFW Examples" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "BUILD GLFW Examples" FORCE)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation" FORCE)
 
 add_subdirectory (glfw)
 

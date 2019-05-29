@@ -17,14 +17,15 @@ using namespace glm;
 #include "common/camera.h"
 #include "common/shaders.h"
 #include <forth.h>
+#include <fstream>
 
 // Classes necessary for rendering
 Forth::Model4 tesseract = Forth::Model4();
 Forth::CrossSection projector = Forth::CrossSection();
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -35,22 +36,40 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+float lastFPS = 0.0f;
 
-void drawTesseract(void)
+void drawPrimitive(int mode, Forth::SimplexMode SM = Forth::SM_Tetrahedron)
 {
 	Forth::Buffer4 *buff = &tesseract.input;
-	buff->simplex = Forth::SM_Tetrahedron;
-
-	for (float w = -1; w <= 1; w += 2)
-		for (float x = -1; x <= 1; x += 2)
-			for (float y = -1; y <= 1; y += 2)
-				for (float z = -1; z <= 1; z += 2)
-				{
-					Forth::Vector4 v = Forth::Vector4(x, y, z, w);
-					buff->AddVertex(v * 1);
-				}
-
-	buff->SequenceGrid(2, 2, 2, 2);
+	buff->Clear();
+	buff->simplex = SM;
+	switch (mode)
+	{
+	case 0:
+		Forth::MeshGen::MakeHyperplane(*buff);
+		break;
+	case 1:
+		Forth::MeshGen::MakePentatope(*buff);
+		break;
+	case 2:
+		Forth::MeshGen::MakeTesseract(*buff);
+		break;
+	case 3:
+		Forth::MeshGen::MakeHexdecahedroid(*buff);
+		break;
+	case 4:
+		Forth::MeshGen::MakeIcosatetrahedroid(*buff);
+		break;
+	case 5:
+		Forth::MeshGen::MakeHecatonicosahedroid(*buff);
+		break;
+	case 6:
+		Forth::MeshGen::MakeHexacosidedroid(*buff);
+		break;
+	case 7:
+		Forth::MeshGen::MakeHypersphere(*buff, 4);
+		break;
+	}
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -59,7 +78,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
 	// make sure the viewport matches the new window dimensions; note that width and
 	// height will be significantly larger than specified on retina displays.
-	glViewport(0, 0, width, height);
+	glViewport(0, 0, SCR_WIDTH = width, SCR_HEIGHT = height);
 }
 
 // glfw: whenever the mouse moves, this callback is called
@@ -107,6 +126,15 @@ void processInput(GLFWwindow *window)
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		camera.ProcessKeyboard(DOWN, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		camera.ProcessKeyboard(UP, deltaTime);
+	for (int i = 0; i < 8; i++)
+	{
+		if (glfwGetKey(window, GLFW_KEY_1 + i) == GLFW_PRESS)
+			drawPrimitive(i);
+	}
 }
 
 int main(void)
@@ -155,9 +183,10 @@ int main(void)
 
 	// tell GLFW to capture our mouse
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	// glfwSwapInterval(1);
 
 	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+	glClearColor(0.2f, 0.2f, 0.0f, 0.0f);
 
 	// Enable depth test
 	glEnable(GL_DEPTH_TEST);
@@ -167,7 +196,7 @@ int main(void)
 	glEnable(GL_CULL_FACE);
 
 	// Cull triangles which normal is not towards the camera
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
@@ -179,9 +208,8 @@ int main(void)
 	GLuint vb;
 	glGenBuffers(1, &vb);
 
-	drawTesseract();
+	drawPrimitive(2);
 
-	std::vector<Forth::Vector3> sv, sn;
 	do
 	{
 		// per-frame time logic
@@ -190,6 +218,10 @@ int main(void)
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
+		if (lastFPS + 0.5f < currentFrame) {
+			std::cout << 1.f / max(0.0001f, deltaTime) << " FPS" << "\r";
+			lastFPS = currentFrame;
+		}
 		// input
 		// -----
 		processInput(window);
@@ -222,7 +254,7 @@ int main(void)
 		tesseract.matrix = r;
 		tesseract.Render(projector);
 
-		FORTH_GL_DRAW(tesseract.driver, vb);
+		FORTH_GL_DRAW(tesseract, vb);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
