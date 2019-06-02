@@ -68,7 +68,8 @@
 		"xstring": "cpp",
 		"xtr1common": "cpp",
 		"xtree": "cpp",
-		"xutility": "cpp"
+		"xutility": "cpp",
+		"random": "cpp"
 	},
 	"cmake.generator": "Visual Studio 15 2017",
 	//"cmake.generator": "MinGW Makefiles",

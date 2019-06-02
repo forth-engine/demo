@@ -1,6 +1,7 @@
 #ifndef SHADER_H
 #define SHADER_H
 
+#include "utility.h"
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
@@ -56,6 +57,7 @@ class Shader
 		catch (std::ifstream::failure e)
 		{
 			std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
+			std::cout << "Trying to get asset from " << GetAppPath() << " failed" << std::endl;
 		}
 		const char *vShaderCode = vertexCode.c_str();
 		const char *fShaderCode = fragmentCode.c_str();
