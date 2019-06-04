@@ -57,13 +57,13 @@ target_link_libraries(
 # Demo 4
 
 add_executable(
-	directPipelineDemo
-	directPipeline.cpp
+	thirdPersonViewDemo
+	thirdPersonView.cpp
 	${demo_srcs}
 )
 
 target_link_libraries(
-	directPipelineDemo
+	thirdPersonViewDemo
 	${demo_libraries}
 )
 
@@ -77,6 +77,19 @@ add_executable(
 
 target_link_libraries(
 	particlesDemo
+	${demo_libraries}
+)
+
+# Demo 6
+
+add_executable(
+	directPipelineDemo
+	directPipeline.cpp
+	${demo_srcs}
+)
+
+target_link_libraries(
+	directPipelineDemo
 	${demo_libraries}
 )
 

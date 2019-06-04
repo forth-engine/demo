@@ -60,12 +60,8 @@ void drawPrimitive(int mode, SimplexMode SM = SM_Tetrahedron)
 			MeshGen::MakeTesseract(*buff);
 			Vector4 s(0.5f - d * 0.1f);
 			s[d] = 1.f + 0.2f * d;
-			Transform4 t = Transform4(Vector4(d, 0.5f + 0.1f * d), Matrix4::identity()).ToTRS(s);
-			for (int i = buff->offset; i < buff->offset + 16; i++)
-			{
-				buff->vertices[i] = t * buff->vertices[i];
-			}
-			buff->Align();
+			Transform4 t = Transform4::Scale(s) * Transform4::Position(Vector4(d, 0.5f + 0.1f * d));
+			MeshGen::Transform(*buff, t);
 		}
 
 		break;
@@ -82,15 +78,20 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 	camera.ProcessMouseScroll((float)yoffset);
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+	{
+		lockedTime = lockedTime == 0.f ? -1.f : 0.f;
+	}
+}
+
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		lockedTime = lockedTime == 0.f ? -1.f : 0.f;
 
 	for (int i = 0; i <= 9; i++)
 	{
@@ -110,20 +111,15 @@ const char *help = R"(
 		0-9     Switch primitive object
 )";
 
-int main(void)
+void SetupMaterial(Shader &sh)
 {
-	window = GlobalInit("Demo 1: 4D Object Primitives", help, mouse_callback, scroll_callback, NULL);
-	if (window == NULL)
-		return -1;
-
-	// Create and compile our GLSL program from the shaders
-	Shader sh("assets/vertex.vs", "assets/fragment.fs");
+	camera.position = vec3(0,0,-5.0f);
 
 	// Shader setup (because shader stays all the time, it's safe to move it out the loop)
 	sh.use();
 	sh.setVec3("objectColor", 1.0f, 0.7f, 0.3f);
 	sh.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-	sh.setVec3("lightPos", vec3(2.f, -2.f, -2.f));
+	sh.setVec3("lightPos", vec3(2.f, 2.f, -2.f));
 	sh.setVec3("viewPos", camera.GetPosition3D());
 
 	// transformations (because 3d projection stays all the time, it's safe to move it out the loop)
@@ -133,6 +129,18 @@ int main(void)
 	sh.setMat4("projection", projection);
 	sh.setMat4("view", view);
 	sh.setMat4("model", model);
+}
+
+int main(void)
+{
+	window = GlobalInit("Demo 1: 4D Object Primitives", help, mouse_callback, scroll_callback, key_callback);
+	if (window == NULL)
+		return -1;
+
+	// Create and compile our GLSL program from the shaders
+	Shader sh("assets/vertex.vs", "assets/fragment.fs");
+
+	SetupMaterial(sh);
 
 	CREATE_AND_BIND_VA(va);
 	CREATE_VB(vb);
@@ -141,7 +149,6 @@ int main(void)
 
 	do
 	{
-
 		// input
 		MeasureTime();
 		PrintFPS();
@@ -156,8 +163,8 @@ int main(void)
 				 Euler(4, elapsed * 90.f) *
 				 Euler(5, elapsed * 105.f);
 
-		projector.Setup(camera.Get4DViewMatrix());
-		tesseract.matrix = Transform4(Vector4::zero(), r);
+		projector.SetViewMatrix(camera.Get4DViewMatrix());
+		tesseract.SetModelMatrix(Transform4::Rotation(r));
 		tesseract.Render(projector);
 
 		FORTH_GL_DRAW(tesseract, vb);

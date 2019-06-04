@@ -119,7 +119,7 @@ GLFWwindow* GlobalInit (const char* title, const char* help, GLFWcursorposfun mo
 	// Enable depth test, fragment, culling
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 
 	// White background
 	glClearColor(1.f, 1.f, 1.0f, 0.0f);

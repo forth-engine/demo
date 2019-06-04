@@ -17,7 +17,11 @@ void main()
 
     // diffuse
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - FragPos);
+    // hack
+    if (!gl_FrontFacing)
+        norm *= -1;
+
+    vec3 lightDir = normalize(-lightPos + FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
 

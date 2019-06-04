@@ -30,7 +30,7 @@ class OrbitView
 		lat = 0;
 		azm = 0;
 		speed = 2.0;
-		position = vec3(0,0,10.0f);
+		position = vec3(0,0,-10.0f);
 		zoom = 45.f;
 	}
 
@@ -51,8 +51,8 @@ class OrbitView
 
 	Transform4 Get4DViewMatrix()
 	{
-		Matrix4 r = Forth::Euler(5, azm) * Forth::Euler(1, lon) * Forth::Euler(0, lat);
-		return Transform4(Vector4::zero(), r);
+		Matrix4 r = Forth::Euler(0, lat) * Forth::Euler(1, lon) * Forth::Euler(5, azm);
+		return Transform4(Vector4::zero, r);
 	}
 
 	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -91,7 +91,7 @@ class OrbitView
 			firstMouse = false;
 		}
 
-		float xoffset = Xpos - lastX;
+		float xoffset = lastX - Xpos; // reserved to follow orbit logic
 		float yoffset = lastY - Ypos; // reversed since y-coordinates go from bottom to top
 
 		lastX = Xpos;
