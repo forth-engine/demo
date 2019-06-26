@@ -138,7 +138,11 @@ int main(void)
 		return -1;
 
 	// Create and compile our GLSL program from the shaders
+#if __EMSCRIPTEN__
+	Shader sh("assets/vertexES.vs", "assets/fragmentES.fs");
+#else
 	Shader sh("assets/vertex.vs", "assets/fragment.fs");
+#endif
 
 	SetupMaterial(sh);
 

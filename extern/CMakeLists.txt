@@ -6,10 +6,17 @@ add_subdirectory (forth)
 
 ### GLFW ###
 
+if (EMSCRIPTEN)
+else()
 # Don't waste our time
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "BUILD GLFW Examples" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "BUILD GLFW Examples" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation" FORCE)
+
+mark_as_advanced(FORCE GLFW_BUILD_EXAMPLES)
+mark_as_advanced(FORCE GLFW_BUILD_TESTS)
+mark_as_advanced(FORCE GLFW_BUILD_DOCS)
+mark_as_advanced(FORCE GLFW_DOCUMENT_INTERNALS)
 
 add_subdirectory (glfw)
 
@@ -54,3 +61,4 @@ target_link_libraries(GLEW_1130
 	${OPENGL_LIBRARY}
 	${EXTRA_LIBS}
 )
+endif()

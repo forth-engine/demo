@@ -12,11 +12,13 @@ using namespace Forth::Physics;
 GLFWwindow *window;
 
 // Classes necessary for rendering
-OrbitView camera = OrbitView();
-std::vector<Model4 *> spheres = std::vector<Model4 *>();
-Model4 plane = Model4();
-CrossSection projector = CrossSection();
-Scene &scene = Scene();
+OrbitView camera;
+std::vector<Model4 *> spheres;
+Model4 plane;
+CrossSection projector;
+Scene scene;
+Euler4 currentTilt;
+Euler4 targetTilt;
 
 void AddSphere()
 {
@@ -29,6 +31,7 @@ void AddSphere()
 	sphere->rigidbody->SetFlags(true, false, true, true, true);
 	sphere->rigidbody->SetTransform(sphere->GetModelMatrix());
 	sphere->rigidbody->SetLinearVelocity(Vector4(1, 4.f));
+	sphere->input.simplex = SM_Tetrahedron;
 	MeshGen::MakeHypersphere(sphere->input, 4, 0.5f);
 	spheres.push_back(sphere);
 }
@@ -47,7 +50,7 @@ void SetupPlane()
 	scene.CreateBody(plane.rigidbody);
 	plane.SetModelMatrix(Transform4::Rotation(Euler(2, 5)));
 	// Box on 8 sides
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		for (float s = -1.f; s <= 1.f; s += 2)
 		{
@@ -58,16 +61,54 @@ void SetupPlane()
 			plane.rigidbody->AddShape(b);
 		}
 	}
-	plane.rigidbody->SetFlags(false, false, true, true, true);
+	plane.rigidbody->SetFlags(false, true, true, true, true);
 	plane.rigidbody->SetTransform(plane.GetModelMatrix());
+	plane.input.simplex = SM_Tetrahedron;
 	MeshGen::MakeHyperplane(plane.input, 5);
 }
 
-
 void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 {
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-		AddSphere();
+	camera.ProcessGLFWMouse(window, (float)xpos, (float)ypos);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	const float tiltCoeff = 10.f;
+	if (action == GLFW_PRESS)
+	{
+		if (key == GLFW_KEY_W)
+			targetTilt.x += tiltCoeff;
+		if (key == GLFW_KEY_S)
+			targetTilt.x += -tiltCoeff;
+		if (key == GLFW_KEY_A)
+			targetTilt.z += tiltCoeff;
+		if (key == GLFW_KEY_D)
+			targetTilt.z += -tiltCoeff;
+		if (key == GLFW_KEY_E)
+			targetTilt.u += tiltCoeff;
+		if (key == GLFW_KEY_Q)
+			targetTilt.u += -tiltCoeff;
+		if (key == GLFW_KEY_EQUAL)
+			AddSphere();
+		if (key == GLFW_KEY_ESCAPE)
+			glfwSetWindowShouldClose(window, true);
+
+	}
+	else if (action == GLFW_RELEASE)
+	{
+		// if (key == GLFW_KEY_W)
+		// 	targetTilt.x = 0;
+		// if (key == GLFW_KEY_S)
+		// 	targetTilt.x = 0;
+		// if (key == GLFW_KEY_A)
+		// 	targetTilt.z = 0;
+		// if (key == GLFW_KEY_D)
+		// 	targetTilt.z = 0;
+		// if (key == GLFW_KEY_E)
+		// 	targetTilt.u = 0;
+		// if (key == GLFW_KEY_Q)
+		// 	targetTilt.u = 0;
 	}
 }
 
@@ -84,7 +125,7 @@ const char *help = R"(
 
 int main(void)
 {
-	window = GlobalInit("Demo 2: Physics Playground", help, mouse_callback, NULL, NULL);
+	window = GlobalInit("Demo 2: Physics Playground", help, mouse_callback, NULL, key_callback);
 
 	if (window == NULL)
 		return -1;
@@ -122,6 +163,10 @@ int main(void)
 		// Clear the screen.
 		GL_CLRSRC();
 
+		projector.SetViewMatrix(camera.Get4DViewMatrix());
+		// projector.focalLength = 0.4f;
+		// projector.useFrustumCulling = false;
+		// projector.Setup();
 		scene.Step(deltaTime);
 
 		for (auto sphere : spheres)
@@ -132,6 +177,12 @@ int main(void)
 			FORTH_GL_DRAW(*sphere, vb);
 		}
 
+		for(size_t i = 0; i < 6; i++)
+		{
+			currentTilt[i] = SmoothDamp(currentTilt[i], targetTilt[i], deltaTime * 3.f);
+		}
+
+		plane.SetModelMatrix(Transform4::Rotation(Euler(4, currentTilt.u)*Euler(2, currentTilt.z)*Euler(0, currentTilt.x)));
 		plane.Render(projector);
 		FORTH_GL_DRAW(plane, vb);
 

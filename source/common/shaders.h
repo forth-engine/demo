@@ -14,6 +14,7 @@ class Shader
 {
   public:
 	unsigned int ID;
+	Shader(){}
 	// constructor generates the shader on the fly
 	// ------------------------------------------------------------------------
 	Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath = nullptr)
@@ -187,6 +188,7 @@ class Shader
 				glGetProgramInfoLog(shader, 1024, NULL, infoLog);
 				std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n"
 						  << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
+				exit(1);
 			}
 		}
 	}

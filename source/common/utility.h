@@ -9,13 +9,13 @@
 #ifdef _WIN32
 #include <direct.h>
 #define getcwd _getcwd // stupid MSFT "deprecation" warning
-#elif
-#include <unistd.h>
 #endif
+
 // Include GLEW
 #include <GL/glew.h>
 
 // Include GLFW
+#include <emscripten/emscripten.h>
 #include <GLFW/glfw3.h>
 
 // Include GLM
@@ -45,10 +45,14 @@ unsigned int SCR_HEIGHT = 600;
 
 
 std::string GetAppPath() {
+#if __EMSCRIPTEN__
+	return "";
+#else
 	char* cwd = _getcwd(0, 0); // **** microsoft specific ****
 	std::string working_directory(cwd);
 	std::free(cwd);
 	return working_directory;
+#endif
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -60,7 +64,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 	glViewport(0, 0, SCR_WIDTH = width, SCR_HEIGHT = height);
 }
 
-GLFWwindow* GlobalInit (const char* title, const char* help, GLFWcursorposfun mouse_callback, GLFWscrollfun scroll_callback, GLFWkeyfun key_callback)
+GLFWwindow* GlobalInit (const char* title, const char* help, GLFWcursorposfun mouse_callback = NULL, GLFWscrollfun scroll_callback = NULL, GLFWkeyfun key_callback = NULL, GLFWmousebuttonfun mouse_btn_callback = NULL)
 {
 	std::cout << title << std::endl;
 	std::cout << help << std::endl;
@@ -112,6 +116,7 @@ GLFWwindow* GlobalInit (const char* title, const char* help, GLFWcursorposfun mo
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetMouseButtonCallback(window, mouse_btn_callback);
 
 	// VSync on
 	glfwSwapInterval(1);

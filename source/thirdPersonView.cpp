@@ -8,10 +8,13 @@ using namespace glm;
 using namespace Forth;
 
 GLFWwindow *window;
-Model4 &plane = Model4();
-Model4 &player = Model4();
-CrossSection &projector = CrossSection();
-OrbitView &camera = OrbitView();
+GLuint va;
+GLuint vb;
+Shader sh;
+Model4 plane;
+Model4 player;
+CrossSection projector;
+OrbitView camera;
 
 float currentW = 0;
 float targetW = 0;
@@ -95,6 +98,38 @@ const char *help = R"(
 		A-Z
 )";
 
+void main_loop()
+{
+	MeasureTime();
+	// PrintFPS();
+	processInput(window);
+	currentW = SmoothDamp(currentW, currentW + DeltaAngle(currentW, targetW), 3.f * deltaTime);
+
+	// Clear the screen.
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	auto p = player.GetModelMatrix().position;
+	auto q = p;
+	q = turntable(currentW) * q;
+	q[3] = 0;
+	auto r =
+		camera.Get4DViewMatrix() *
+		Transform4(q, Matrix4::identity) *
+		Transform4(Vector4(), turntable(currentW)) *
+		Transform4(-p, Matrix4::identity);
+
+	projector.SetViewMatrix(r);
+
+	plane.Render(projector);
+	FORTH_GL_DRAW(plane, vb);
+
+	player.Render(projector);
+	FORTH_GL_DRAW(player, vb);
+
+	// Swap buffers
+	glfwSwapBuffers(window); glfwPollEvents();
+}
+
 int main(void)
 {
 	window = GlobalInit("Demo 4: Third Person View", help, mouse_callback, scroll_callback, key_callback);
@@ -108,7 +143,11 @@ int main(void)
 	projector.SetViewMatrix(Transform4(Vector4::zero, Euler(1, 45.f)));
 
 	// Create and compile our GLSL program from the shaders
-	Shader sh("assets/vertex.vs", "assets/fragment.fs");
+#if __EMSCRIPTEN__
+	sh = Shader("assets/vertexES.vs", "assets/fragmentES.fs");
+#else
+	sh = Shader("assets/vertex.vs", "assets/fragment.fs");
+#endif
 
 	// Shader setup (because shader stays all the time, it's safe to move it out the loop)
 	camera.position = vec3(0, 1.f, 15.f);
@@ -126,44 +165,18 @@ int main(void)
 	sh.setMat4("view", view);
 	sh.setMat4("model", model);
 
-	CREATE_AND_BIND_VA(va);
-	CREATE_VB(vb);
+	glGenVertexArrays(1, &va);
+	glBindVertexArray(va);
+	glGenBuffers(1, &vb);
 
+#if __EMSCRIPTEN__
+	emscripten_set_main_loop(main_loop, 0, 0);
+#else
 	do
 	{
-
-		MeasureTime();
-		// PrintFPS();
-		processInput(window);
-		currentW = SmoothDamp(currentW, currentW + DeltaAngle(currentW, targetW), 3.f * deltaTime);
-
-		// Clear the screen.
-		GL_CLRSRC();
-
-		auto p = player.GetModelMatrix().position;
-		auto q = p;
-		q = turntable(currentW) * q;
-		q[3] = 0;
-		auto r =
-			camera.Get4DViewMatrix() *
-			Transform4(q, Matrix4::identity) *
-			Transform4(Vector4(), turntable(currentW)) *
-			Transform4(-p, Matrix4::identity);
-
-		projector.SetViewMatrix(r);
-
-		plane.Render(projector);
-		FORTH_GL_DRAW(plane, vb);
-
-		player.Render(projector);
-		FORTH_GL_DRAW(player, vb);
-
-		// Swap buffers
-		GL_SWAP(window);
-
+		main_loop();
 	} while (glfwWindowShouldClose(window) == 0);
-
 	glfwTerminate();
-
 	return 0;
+#endif
 }
