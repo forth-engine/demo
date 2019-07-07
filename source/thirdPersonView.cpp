@@ -92,6 +92,24 @@ void processInput(GLFWwindow *window)
 		MovePlayer(Vector4(2, speed * deltaTime));
 }
 
+void SetupMaterial(Shader &sh)
+{
+	// Shader setup (because shader stays all the time, it's safe to move it out the loop)
+	sh.use();
+	sh.setVec3("objectColor", 1.0f, 0.7f, 0.3f);
+	sh.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+	sh.setVec3("lightPos", vec3(5.f, 5.f, 5.f));
+	sh.setVec3("viewPos", camera.GetPosition3D());
+
+	// transformations (because 3d projection stays all the time, it's safe to move it out the loop)
+	mat4 projection = camera.Get3DProjectionMatrix();
+	mat4 view = camera.Get3DViewMatrix();
+	mat4 model = mat4(1.0f);
+	sh.setMat4("projection", projection);
+	sh.setMat4("view", view);
+	sh.setMat4("model", model);
+}
+
 const char *help = R"(
 	Lorem ipsum
 	Navigation:
@@ -101,12 +119,11 @@ const char *help = R"(
 void main_loop()
 {
 	MeasureTime();
-	// PrintFPS();
+
 	processInput(window);
 	currentW = SmoothDamp(currentW, currentW + DeltaAngle(currentW, targetW), 3.f * deltaTime);
 
-	// Clear the screen.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	GL_RESET();
 
 	auto p = player.GetModelMatrix().position;
 	auto q = p;
@@ -126,8 +143,7 @@ void main_loop()
 	player.Render(projector);
 	FORTH_GL_DRAW(player, vb);
 
-	// Swap buffers
-	glfwSwapBuffers(window); glfwPollEvents();
+	GL_SWAP(window);
 }
 
 int main(void)
@@ -141,42 +157,13 @@ int main(void)
 	SetupPlayer();
 
 	projector.SetViewMatrix(Transform4(Vector4::zero, Euler(1, 45.f)));
+	camera.position = vec3(0, 1.f, 15.f);
 
 	// Create and compile our GLSL program from the shaders
-#if __EMSCRIPTEN__
-	sh = Shader("assets/vertexES.vs", "assets/fragmentES.fs");
-#else
-	sh = Shader("assets/vertex.vs", "assets/fragment.fs");
-#endif
+	sh = Shader(COMMON_SHADER);
 
-	// Shader setup (because shader stays all the time, it's safe to move it out the loop)
-	camera.position = vec3(0, 1.f, 15.f);
-	sh.use();
-	sh.setVec3("objectColor", 1.0f, 0.7f, 0.3f);
-	sh.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-	sh.setVec3("lightPos", vec3(5.f, 5.f, 5.f));
-	sh.setVec3("viewPos", camera.GetPosition3D());
+	SetupMaterial(sh);
 
-	// transformations (because 3d projection stays all the time, it's safe to move it out the loop)
-	mat4 projection = camera.Get3DProjectionMatrix();
-	mat4 view = camera.Get3DViewMatrix();
-	mat4 model = mat4(1.0f);
-	sh.setMat4("projection", projection);
-	sh.setMat4("view", view);
-	sh.setMat4("model", model);
-
-	glGenVertexArrays(1, &va);
-	glBindVertexArray(va);
-	glGenBuffers(1, &vb);
-
-#if __EMSCRIPTEN__
-	emscripten_set_main_loop(main_loop, 0, 0);
-#else
-	do
-	{
-		main_loop();
-	} while (glfwWindowShouldClose(window) == 0);
-	glfwTerminate();
-	return 0;
-#endif
+	BIND_VA_VB(va, vb);
+	MAIN_LOOP;
 }

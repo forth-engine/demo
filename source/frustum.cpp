@@ -11,13 +11,13 @@ using namespace Forth;
 #include <fstream>
 
 GLFWwindow *window;
+GLuint va;
+GLuint vb;
+Shader sh;
+Model4 tesseract;
+Frustum4 projector;
+OrbitView camera;
 
-// Classes necessary for rendering
-Model4 tesseract = Model4();
-Frustum4 projector = Frustum4();
-
-// camera
-OrbitView camera = OrbitView();
 float lockedTime = -1.0f;
 SimplexMode SM = SM_Triangle;
 int Shape = 2;
@@ -88,17 +88,17 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		{
 			lockedTime = lockedTime == 0.f ? -1.f : 0.f;
 		}
-		if (key == GLFW_KEY_F3)
+		if (key == GLFW_KEY_Z)
 		{
 			SM = SM_Triangle;
 			drawPrimitive();
 		}
-		if (key == GLFW_KEY_F2)
+		if (key == GLFW_KEY_X)
 		{
 			SM = SM_Line;
 			drawPrimitive();
 		}
-		if (key == GLFW_KEY_F1)
+		if (key == GLFW_KEY_C)
 		{
 			SM = SM_Point;
 			drawPrimitive();
@@ -127,7 +127,7 @@ const char *help = R"(
 		Scroll  Zoom in/out
 		Space   Stops or resumes model rotation
 		0-9     Switch primitive object
-		F1-F3   Switch Point/Wire/Solid visualization
+		Z,X,C   Switch Point/Wire/Solid visualization
 )";
 
 void SetupMaterial(Shader &sh)
@@ -149,34 +149,15 @@ void SetupMaterial(Shader &sh)
 	sh.setMat4("model", model);
 }
 
-int main(void)
+
+void main_loop()
 {
-	window = GlobalInit("Demo 3: Frustum", help, mouse_callback, scroll_callback, key_callback);
-	if (window == NULL)
-		return -1;
-
-	// Create and compile our GLSL program from the shaders
-#if __EMSCRIPTEN__
-	Shader sh("assets/vertexES.vs", "assets/fragmentES.fs");
-#else
-	Shader sh("assets/vertex.vs", "assets/fragment.fs");
-#endif
-
-	SetupMaterial(sh);
-
-	CREATE_AND_BIND_VA(va);
-	CREATE_VB(vb);
-
-	drawPrimitive();
-
-	do
-	{
-		// input
+	// input
 		MeasureTime();
 		PrintFPS();
 
 		// Clear the screen.
-		GL_CLRSRC();
+		GL_RESET();
 
 		// Render tesseract
 		float elapsed = lockedTime >= 0.f ? lockedTime : float(glfwGetTime());
@@ -194,10 +175,21 @@ int main(void)
 
 		// Swap buffers
 		GL_SWAP(window);
+}
 
-	} while (glfwWindowShouldClose(window) == 0);
+int main(void)
+{
+	window = GlobalInit("Demo 3: Frustum", help, mouse_callback, scroll_callback, key_callback);
 
-	glfwTerminate();
+	if (window == NULL)
+		return -1;
 
-	return 0;
+	sh = Shader(COMMON_SHADER);
+
+	SetupMaterial(sh);
+
+	drawPrimitive();
+
+	BIND_VA_VB(va, vb);
+	MAIN_LOOP;
 }

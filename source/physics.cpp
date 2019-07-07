@@ -14,6 +14,9 @@ GLFWwindow *window;
 // Classes necessary for rendering
 OrbitView camera;
 std::vector<Model4 *> spheres;
+GLuint va;
+GLuint vb;
+Shader sh;
 Model4 plane;
 CrossSection projector;
 Scene scene;
@@ -112,27 +115,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
-const char *help = R"(
-	Demonstrating physics module in Forth Engine.
-	Navigation:
-		Space                 Add a sphere
-		Backspace             Delete a random sphere
-		Mouse X, Y            Longitude-Latitude orbit view
-		Ctrl+X Mouse/Scroll   Azimuth orbit view
-		WASD                  Tilt the plane
-		LMB/RMB               Attractive / Pulse Force
-)";
 
-int main(void)
+void SetupMaterial(Shader &sh)
 {
-	window = GlobalInit("Demo 2: Physics Playground", help, mouse_callback, NULL, key_callback);
-
-	if (window == NULL)
-		return -1;
-
-	Shader sh("assets/vertex.vs", "assets/fragment.fs");
-
-	// Shader setup (because shader stays all the time, it's safe to move it out the loop)
+// Shader setup (because shader stays all the time, it's safe to move it out the loop)
 	sh.use();
 	sh.setVec3("objectColor", 1.0f, 0.7f, 0.3f);
 	sh.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
@@ -147,21 +133,27 @@ int main(void)
 	sh.setMat4("projection", projection);
 	sh.setMat4("view", view);
 	sh.setMat4("model", model);
+}
 
-	AddSphere();
-	SetupPlane();
+const char *help = R"(
+	Demonstrating physics module in Forth Engine.
+	Navigation:
+		Space                 Add a sphere
+		Backspace             Delete a random sphere
+		Mouse X, Y            Longitude-Latitude orbit view
+		Ctrl+X Mouse/Scroll   Azimuth orbit view
+		WASD                  Tilt the plane
+		LMB/RMB               Attractive / Pulse Force
+)";
 
-	CREATE_AND_BIND_VA(va);
-	CREATE_VB(vb);
-
-	do
-	{
+void main_loop()
+{
 		// input
 		MeasureTime();
 		PrintFPS();
 
 		// Clear the screen.
-		GL_CLRSRC();
+		GL_RESET();
 
 		projector.SetViewMatrix(camera.Get4DViewMatrix());
 		// projector.focalLength = 0.4f;
@@ -188,10 +180,23 @@ int main(void)
 
 		// Swap buffers
 		GL_SWAP(window);
+}
 
-	} while (glfwWindowShouldClose(window) == 0);
+int main(void)
+{
+	window = GlobalInit("Demo 2: Physics Playground", help, mouse_callback, NULL, key_callback);
 
-	glfwTerminate();
+	if (window == NULL)
+		return -1;
 
-	return 0;
+	sh = Shader(COMMON_SHADER);
+
+	SetupMaterial(sh);
+
+	AddSphere();
+	SetupPlane();
+
+	BIND_VA_VB(va, vb);
+
+	MAIN_LOOP;
 }

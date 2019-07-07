@@ -9,111 +9,56 @@ set(include_srcs
 
 
 if (EMSCRIPTEN)
-
-set(demo_libraries
-	forth_static
-	"-s USE_GLFW=3"
-	"-s USE_WEBGL2=1"
-	"-Os"
-	"--preload-file ../../assets/@assets/"
-	${ADDITIONAL_LIBRARIES}
-)
-
+	set(demo_libraries
+		forth_static
+		"-s USE_GLFW=3"
+		"-s USE_WEBGL2=1"
+		"-Os"
+		"--preload-file ../../assets/@assets/"
+		${ADDITIONAL_LIBRARIES}
+	)
 else()
-set(demo_libraries
-	${OPENGL_LIBRARIES}
-	forth_static
-	${ADDITIONAL_LIBRARIES}
-	GLEW_1130
-	glfw
-)
-
+	set(demo_libraries
+		${OPENGL_LIBRARIES}
+		forth_static
+		${ADDITIONAL_LIBRARIES}
+		GLEW_1130
+		glfw
+	)
 endif()
 
-# Demo 1
+add_executable( primitiveDemo primitive.cpp ${demo_srcs} )
+add_executable( physicsDemo physics.cpp ${demo_srcs} )
+add_executable( frustumDemo frustum.cpp ${demo_srcs} )
+add_executable( thirdPersonViewDemo thirdPersonView.cpp ${demo_srcs} )
+add_executable( particlesDemo particles.cpp ${demo_srcs} )
+add_executable( directPipelineDemo directPipeline.cpp ${demo_srcs} )
 
-# add_executable(
-# 	primitiveDemo
-# 	primitive.cpp
-# 	${demo_srcs}
-# )
+target_link_libraries( primitiveDemo ${demo_libraries} )
+target_link_libraries( physicsDemo ${demo_libraries} )
+target_link_libraries( frustumDemo ${demo_libraries} )
+target_link_libraries( thirdPersonViewDemo ${demo_libraries} )
+target_link_libraries( particlesDemo ${demo_libraries} )
+target_link_libraries( directPipelineDemo ${demo_libraries} )
 
-# target_link_libraries(
-# 	primitiveDemo
-# 	${demo_libraries}
-# )
+if (EMSCRIPTEN)
 
-# # Demo 2
+	set_target_properties(primitiveDemo PROPERTIES SUFFIX ".html")
+	set_target_properties(physicsDemo PROPERTIES SUFFIX ".html")
+	set_target_properties(frustumDemo PROPERTIES SUFFIX ".html")
+	set_target_properties(thirdPersonViewDemo PROPERTIES SUFFIX ".html")
+	set_target_properties(particlesDemo PROPERTIES SUFFIX ".html")
+	set_target_properties(directPipelineDemo PROPERTIES SUFFIX ".html")
 
-# add_executable(
-# 	physicsDemo
-# 	physics.cpp
-# 	${demo_srcs}
-# )
+else()
 
-# target_link_libraries(
-# 	physicsDemo
-# 	${demo_libraries}
-# )
+	file(COPY ${CMAKE_SOURCE_DIR}/assets/ DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/)
 
-# # Demo 3
+	set_property(TARGET primitiveDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	set_property(TARGET physicsDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	set_property(TARGET frustumDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	set_property(TARGET thirdPersonViewDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	set_property(TARGET directPipelineDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+	set_property(TARGET particlesDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
-# add_executable(
-# 	frustumDemo
-# 	frustum.cpp
-# 	${demo_srcs}
-# )
-
-# target_link_libraries(
-# 	frustumDemo
-# 	${demo_libraries}
-# )
-
-# Demo 4
-
-add_executable(
-	thirdPersonViewDemo
-	thirdPersonView.cpp
-	${demo_srcs}
-)
-
-target_link_libraries(
-	thirdPersonViewDemo
-	${demo_libraries}
-)
-
-set_target_properties(thirdPersonViewDemo PROPERTIES SUFFIX ".html")
-
-# # Demo 5
-
-# add_executable(
-# 	particlesDemo
-# 	particles.cpp
-# 	${demo_srcs}
-# )
-
-# target_link_libraries(
-# 	particlesDemo
-# 	${demo_libraries}
-# )
-
-# # Demo 6
-
-# add_executable(
-# 	directPipelineDemo
-# 	directPipeline.cpp
-# 	${demo_srcs}
-# )
-
-# target_link_libraries(
-# 	directPipelineDemo
-# 	${demo_libraries}
-# )
-
-file(COPY ${CMAKE_SOURCE_DIR}/assets/ DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/)
-
-# set_property(TARGET primitiveDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-# set_property(TARGET physicsDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-# set_property(TARGET frustumDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-# set_property(TARGET directPipelineDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-# set_property(TARGET particlesDemo PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+endif()

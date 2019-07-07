@@ -8,6 +8,16 @@ Also see the [library](https://github.com/forth-engine/forth-library/) and the [
 
 ## Note to self.
 
+Git remotes
+
+```
+git remote add extern-glew https://github.com/forth-engine/glew
+git remote add extern-glut https://github.com/glfw/glfw
+git remote add extern-glfw https://github.com/glfw/glfw
+git remote add extern-forth https://github.com/forth-engine/forth-library
+git remote add extern-glm https://github.com/g-truc/glm
+```
+
 Syncing with forth-library repo:
 
 ```

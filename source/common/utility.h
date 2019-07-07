@@ -2,9 +2,9 @@
 
 // Standard includes appear here.......
 // Include standard headers
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
 #include <string>
 #ifdef _WIN32
 #include <direct.h>
@@ -15,8 +15,8 @@
 #include <GL/glew.h>
 
 // Include GLFW
-#include <emscripten/emscripten.h>
 #include <GLFW/glfw3.h>
+#include <emscripten/emscripten.h>
 
 // Include GLM
 #include <glm/glm.hpp>
@@ -30,25 +30,41 @@ using namespace Forth;
 unsigned int SCR_WIDTH = 800;
 unsigned int SCR_HEIGHT = 600;
 
-#define CREATE_AND_BIND_VA(va) \
-	GLuint va; \
-	glGenVertexArrays(1, &va);\
-	glBindVertexArray(va);
-
-#define CREATE_VB(vb) \
-	GLuint vb; \
+#define BIND_VA_VB(va, vb)     \
+	glGenVertexArrays(1, &va); \
+	glBindVertexArray(va);     \
 	glGenBuffers(1, &vb);
 
-#define GL_CLRSRC() glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+#if __EMSCRIPTEN__
+#define COMMON_SHADER "assets/vertexES.vs", "assets/fragmentES.fs"
+#else
+#define COMMON_SHADER "assets/vertex.vs", "assets/fragment.fs"
+#endif
 
-#define GL_SWAP(window) glfwSwapBuffers(window); glfwPollEvents();
+#define GL_RESET() glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
+#define GL_SWAP(window)      \
+	glfwSwapBuffers(window); \
+	glfwPollEvents();
 
-std::string GetAppPath() {
+#if __EMSCRIPTEN__
+#define MAIN_LOOP emscripten_set_main_loop(main_loop, 0, 0);
+#else
+#define MAIN_LOOP                                 \
+	do                                            \
+	{                                             \
+		main_loop();                              \
+	} while (glfwWindowShouldClose(window) == 0); \
+	glfwTerminate();                              \
+	return 0;
+#endif
+
+std::string GetAppPath()
+{
 #if __EMSCRIPTEN__
 	return "";
 #else
-	char* cwd = _getcwd(0, 0); // **** microsoft specific ****
+	char *cwd = _getcwd(0, 0); // **** microsoft specific ****
 	std::string working_directory(cwd);
 	std::free(cwd);
 	return working_directory;
@@ -64,7 +80,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 	glViewport(0, 0, SCR_WIDTH = width, SCR_HEIGHT = height);
 }
 
-GLFWwindow* GlobalInit (const char* title, const char* help, GLFWcursorposfun mouse_callback = NULL, GLFWscrollfun scroll_callback = NULL, GLFWkeyfun key_callback = NULL, GLFWmousebuttonfun mouse_btn_callback = NULL)
+GLFWwindow *GlobalInit(const char *title, const char *help, GLFWcursorposfun mouse_callback = NULL, GLFWscrollfun scroll_callback = NULL, GLFWkeyfun key_callback = NULL, GLFWmousebuttonfun mouse_btn_callback = NULL)
 {
 	std::cout << title << std::endl;
 	std::cout << help << std::endl;
@@ -79,15 +95,15 @@ GLFWwindow* GlobalInit (const char* title, const char* help, GLFWcursorposfun mo
 	}
 
 	// Window contexts
-	glfwWindowHint(GLFW_SAMPLES, 4); // Antialiasing
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Target major
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3); // Target minor
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // MacOS specific
-	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE); // Need resizable
+	glfwWindowHint(GLFW_SAMPLES, 4);							   // Antialiasing
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);				   // Target major
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);				   // Target minor
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);		   // MacOS specific
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);					   // Need resizable
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // Core Profile
 
 	// Open a window and create its OpenGL context
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, title, NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, title, NULL, NULL);
 	if (window == NULL)
 	{
 		std::cerr << "Failed to open GLFW window. Requires OpenGL 3.3\n";

@@ -13,11 +13,13 @@ using namespace Forth;
 GLFWwindow *window;
 
 // Classes necessary for rendering
-Model4 tesseract = Model4();
-CrossSection projector = CrossSection();
 
-// camera
-OrbitView camera = OrbitView();
+GLuint va;
+GLuint vb;
+Shader sh;
+Model4 tesseract;
+CrossSection projector;
+OrbitView camera;
 float lockedTime = -1.0f;
 
 void drawPrimitive(int mode, SimplexMode SM = SM_Tetrahedron)
@@ -131,54 +133,45 @@ void SetupMaterial(Shader &sh)
 	sh.setMat4("model", model);
 }
 
+void main_loop()
+{
+	// input
+	MeasureTime();
+	PrintFPS();
+	processInput(window);
+
+	// Clear the screen.
+	GL_RESET();
+
+	// Render tesseract
+	float elapsed = lockedTime >= 0.f ? lockedTime : float(glfwGetTime());
+	auto r = Euler(1, elapsed * 75.f) *
+				Euler(4, elapsed * 90.f) *
+				Euler(5, elapsed * 105.f);
+
+	projector.SetViewMatrix(camera.Get4DViewMatrix());
+	tesseract.SetModelMatrix(Transform4::Rotation(r));
+	tesseract.Render(projector);
+
+	FORTH_GL_DRAW(tesseract, vb);
+
+	// Swap buffers
+	GL_SWAP(window);
+}
+
 int main(void)
 {
 	window = GlobalInit("Demo 1: 4D Object Primitives", help, mouse_callback, scroll_callback, key_callback);
 	if (window == NULL)
 		return -1;
 
-	// Create and compile our GLSL program from the shaders
-#if __EMSCRIPTEN__
-	Shader sh("assets/vertexES.vs", "assets/fragmentES.fs");
-#else
-	Shader sh("assets/vertex.vs", "assets/fragment.fs");
-#endif
+	sh = Shader(COMMON_SHADER);
 
 	SetupMaterial(sh);
 
-	CREATE_AND_BIND_VA(va);
-	CREATE_VB(vb);
-
 	drawPrimitive(2);
 
-	do
-	{
-		// input
-		MeasureTime();
-		PrintFPS();
-		processInput(window);
+	BIND_VA_VB(va, vb);
 
-		// Clear the screen.
-		GL_CLRSRC();
-
-		// Render tesseract
-		float elapsed = lockedTime >= 0.f ? lockedTime : float(glfwGetTime());
-		auto r = Euler(1, elapsed * 75.f) *
-				 Euler(4, elapsed * 90.f) *
-				 Euler(5, elapsed * 105.f);
-
-		projector.SetViewMatrix(camera.Get4DViewMatrix());
-		tesseract.SetModelMatrix(Transform4::Rotation(r));
-		tesseract.Render(projector);
-
-		FORTH_GL_DRAW(tesseract, vb);
-
-		// Swap buffers
-		GL_SWAP(window);
-
-	} while (glfwWindowShouldClose(window) == 0);
-
-	glfwTerminate();
-
-	return 0;
+	MAIN_LOOP;
 }
